@@ -1,0 +1,21 @@
+DEFAULT :
+    host : 127.0.0.1
+    port : 5200
+    is_secure : false
+
+fixtures :
+    bucket_prefix : test
+
+s3main :
+    access_key : "9d6696bb73ace6af9dfd10e1d50250ee"
+    access_secret : "1c63129ae9db9c60c3e8aa94d3e00495"
+    bucket : bucket1
+    region : us-east-1
+    endpoint : 127.0.0.1:5200
+    host : 127.0.0.1
+    port : 5200
+    display_name :
+    email : tester@test.com
+    is_secure : false
+    SSE : aws:kms
+    kmskeyid : testkey-1
