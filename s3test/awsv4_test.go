@@ -1,30 +1,28 @@
 package s3test
 
 import (
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
-	"github.com/spf13/viper"
-
 	"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-
 	"time"
 
-	. "../Utilities"
+	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/ceph/go_s3tests/helpers"
+	"github.com/spf13/viper"
 )
 
 func (suite *S3Suite) TestPresignRequest() {
 
 	assert := suite
 	region := viper.GetString("s3main.region")
-	req, body := SetupRequest("S3", region, "{}")
+	req, body := helpers.SetupRequest("S3", region, "{}")
 
-	signer := SetupSigner(Creds)
+	signer := helpers.SetupSigner(helpers.Creds)
 	signer.Presign(req, body, "s3", region, 300*time.Second, time.Unix(0, 0))
 	qry := req.URL.Query()
-	var credentials string = viper.GetString("s3main.access_key") + "/" + "19700101" + "/" 
+	var credentials string = viper.GetString("s3main.access_key") + "/" + "19700101" + "/"
 	credentials = credentials + viper.GetString("s3main.region") + "/" + "s3" + "/" + "aws4_request"
 	assert.Equal(credentials, qry.Get("X-Amz-Credential"))
 	assert.Equal("content-length;content-type;host;x-amz-meta-other-header;x-amz-meta-other-header_with_underscore", qry.Get("X-Amz-SignedHeaders"))
@@ -35,11 +33,11 @@ func (suite *S3Suite) TestSignRequest() {
 
 	assert := suite
 	region := viper.GetString("s3main.region")
-	req, body := SetupRequest("S3", region, "{}")
-	var credentials string = viper.GetString("s3main.access_key") + "/" + "19700101" + "/" 
+	req, body := helpers.SetupRequest("S3", region, "{}")
+	var credentials string = viper.GetString("s3main.access_key") + "/" + "19700101" + "/"
 	credentials = credentials + viper.GetString("s3main.region") + "/" + "s3" + "/" + "aws4_request"
 	expectedauth := "AWS4-HMAC-SHA256 Credential=" + credentials + ", SignedHeaders=content-length;content-type;host;x-amz-content-sha256;x-amz-date;x-amz-meta-other-header;x-amz-meta-other-header_with_underscore;x-amz-target"
-	signer := SetupSigner(Creds)
+	signer := helpers.SetupSigner(helpers.Creds)
 
 	signer.Sign(req, body, "s3", region, time.Unix(0, 0))
 
@@ -52,9 +50,9 @@ func (suite *S3Suite) TestSignBody() {
 
 	assert := suite
 	region := viper.GetString("s3main.region")
-	req, body := SetupRequest("S3", region, "yello")
+	req, body := helpers.SetupRequest("S3", region, "yello")
 
-	signer := SetupSigner(Creds)
+	signer := helpers.SetupSigner(helpers.Creds)
 	signer.Sign(req, body, "s3", region, time.Now())
 
 	hash := req.Header.Get("X-Amz-Content-Sha256")
@@ -65,9 +63,9 @@ func (suite *S3Suite) TestPresignEmptyBody() {
 
 	assert := suite
 	region := viper.GetString("s3main.region")
-	req, body := SetupRequest("S3", region, "{}")
+	req, body := helpers.SetupRequest("S3", region, "{}")
 
-	signer := SetupSigner(Creds)
+	signer := helpers.SetupSigner(helpers.Creds)
 	signer.Presign(req, body, "s3", region, 5*time.Minute, time.Now())
 
 	hash := req.Header.Get("X-Amz-Content-Sha256")
@@ -78,9 +76,9 @@ func (suite *S3Suite) TestSignUnsignedpayload() {
 
 	assert := suite
 	region := viper.GetString("s3main.region")
-	req, body := SetupRequest("S3", region, "yello")
+	req, body := helpers.SetupRequest("S3", region, "yello")
 
-	signer := SetupSigner(Creds)
+	signer := helpers.SetupSigner(helpers.Creds)
 	signer.Presign(req, body, "s3", region, 5*time.Minute, time.Now())
 
 	hash := req.Header.Get("X-Amz-Content-Sha256")
@@ -90,7 +88,7 @@ func (suite *S3Suite) TestSignUnsignedpayload() {
 func (suite *S3Suite) TestSignWithRequestBody() {
 
 	assert := suite
-	signer := v4.NewSigner(Creds)
+	signer := v4.NewSigner(helpers.Creds)
 
 	expectBody := []byte("abc123")
 
@@ -115,7 +113,7 @@ func (suite *S3Suite) TestSignWithRequestBody() {
 func (suite *S3Suite) TestSignWithRequestBodyOverwrite() {
 
 	assert := suite
-	signer := v4.NewSigner(Creds)
+	signer := v4.NewSigner(helpers.Creds)
 
 	var expectBody []byte
 
@@ -144,10 +142,10 @@ func (suite *S3Suite) TestSignWithBodyReplaceRequestBody() {
 	assert := suite
 	region := viper.GetString("s3main.region")
 
-	req, seekerBody := SetupRequest("S3", region, "{}")
+	req, seekerBody := helpers.SetupRequest("S3", region, "{}")
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))
 
-	s := v4.NewSigner(Creds)
+	s := v4.NewSigner(helpers.Creds)
 	origBody := req.Body
 
 	_, err := s.Sign(req, seekerBody, "s3", "mexico", time.Now())
@@ -161,10 +159,10 @@ func (suite *S3Suite) TestSignWithBodyNoReplaceRequestBody() {
 	assert := suite
 	region := viper.GetString("s3main.region")
 
-	req, seekerBody := SetupRequest("S3", region, "{}")
+	req, seekerBody := helpers.SetupRequest("S3", region, "{}")
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))
 
-	s := v4.NewSigner(Creds, func(signer *v4.Signer) {
+	s := v4.NewSigner(helpers.Creds, func(signer *v4.Signer) {
 		signer.DisableRequestBodyOverwrite = true
 	})
 
@@ -174,7 +172,6 @@ func (suite *S3Suite) TestSignWithBodyNoReplaceRequestBody() {
 	assert.Nil(err)
 	assert.Equal(req.Body, origBody)
 }
-
 
 // Since AWS SDK Go v1.16.2 there is a change in the way requests are presigned
 // and the TestPresignHandler() test does not pass anymore.
@@ -201,7 +198,7 @@ func (suite *S3Suite) TestSignWithBodyNoReplaceRequestBody() {
 // 	expectedHost := viper.GetString("s3main.endpoint")
 // 	expectedDate := "19700101T000000Z"
 // 	expectedHeaders := "content-disposition;host;x-amz-acl"
-// 	var credentials string = viper.GetString("s3main.access_key") + "/" + "19700101" + "/" 
+// 	var credentials string = viper.GetString("s3main.access_key") + "/" + "19700101" + "/"
 // 	credentials = credentials + viper.GetString("s3main.region") + "/" + "s3" + "/" + "aws4_request"
 // 	expectedCred := credentials
 
@@ -219,10 +216,10 @@ func (suite *S3Suite) TestSignWithBodyNoReplaceRequestBody() {
 func (suite *S3Suite) TestStandaloneSignCustomURIEscape() {
 
 	assert := suite
-	var credentials string = viper.GetString("s3main.access_key") + "/" + "19700101" + "/" 
+	var credentials string = viper.GetString("s3main.access_key") + "/" + "19700101" + "/"
 	credentials = credentials + viper.GetString("s3main.region") + "/" + "es" + "/" + "aws4_request"
 	var expectedauth = "AWS4-HMAC-SHA256 Credential=" + credentials + ", SignedHeaders=host;x-amz-date"
-	signer := v4.NewSigner(Creds, func(s *v4.Signer) {
+	signer := v4.NewSigner(helpers.Creds, func(s *v4.Signer) {
 		s.DisableURIPathEscaping = true
 	})
 

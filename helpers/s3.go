@@ -1,24 +1,24 @@
 package helpers
 
 import (
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
+	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
 
 	"bytes"
-	"golang.org/x/net/context"
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
-	"strings"
-	"os"
-	"time"
 	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/spf13/viper"
+	"golang.org/x/net/context"
 )
 
 func LoadConfig() error {
@@ -27,13 +27,13 @@ func LoadConfig() error {
 	viper.AddConfigPath("../")
 	viper.SetConfigName("config")
 
-  	err := viper.ReadInConfig() 
-  	if err != nil {
+	err := viper.ReadInConfig()
+	if err != nil {
 		fmt.Println(err)
 		fmt.Println("Config file not found...")
-  	}
+	}
 
-  	return err
+	return err
 }
 
 var err = LoadConfig()
@@ -56,40 +56,43 @@ var svc = s3.New(sess, cfg)
 var uploader = s3manager.NewUploader(sess)
 var downloader = s3manager.NewDownloader(sess)
 
-func GetConn() (*s3.S3) {
+func GetConn() *s3.S3 {
 
-	return svc	
+	return svc
 }
 
 func WithIfNoneMatch(conditions ...string) request.Option {
-    return func(r *request.Request) {
-       for _, v := range conditions {
-            r.HTTPRequest.Header.Add("If-None-Match", v)
-       }
-    }
+	return func(r *request.Request) {
+		for _, v := range conditions {
+			r.HTTPRequest.Header.Add("If-None-Match", v)
+		}
+	}
 }
 
 func WithIfMatch(conditions ...string) request.Option {
-    return func(r *request.Request) {
-       for _, v := range conditions {
-            r.HTTPRequest.Header.Add("If-Match", v)
-       }
-    }
+	return func(r *request.Request) {
+		for _, v := range conditions {
+			r.HTTPRequest.Header.Add("If-Match", v)
+		}
+	}
 }
 
 func AddHeaders(conditions map[string]string) request.Option {
 
-    return func(r *request.Request) {
-       for k, v := range conditions {
-            r.HTTPRequest.Header.Add(k,v)
-       }
-    }
+	return func(r *request.Request) {
+		for k, v := range conditions {
+			r.HTTPRequest.Header.Add(k, v)
+		}
+	}
 }
 
 func CreateBucket(svc *s3.S3, bucket string) error {
 
 	_, err := svc.CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: svc.Config.Region,
+		},
 	})
 
 	return err
@@ -163,12 +166,12 @@ func GetObjects(svc *s3.S3, bucket string) (*s3.ListObjectsOutput, error) {
 
 func ListObjectsWithDelimeterAndPrefix(svc *s3.S3, bucket string, prefix string, delimiter string) (*s3.ListObjectsOutput, []string, []string, error) {
 
-	keys := []string {}
-	prefixes := []string {}
+	keys := []string{}
+	prefixes := []string{}
 
 	resp, err := svc.ListObjects(&s3.ListObjectsInput{
-		Bucket: aws.String(bucket),
-		Prefix: aws.String(prefix),
+		Bucket:    aws.String(bucket),
+		Prefix:    aws.String(prefix),
 		Delimiter: aws.String(delimiter),
 	})
 
@@ -177,16 +180,16 @@ func ListObjectsWithDelimeterAndPrefix(svc *s3.S3, bucket string, prefix string,
 	}
 
 	for _, commonPrefix := range resp.CommonPrefixes {
-        prefixes = append(prefixes, *commonPrefix.Prefix)
-    }
+		prefixes = append(prefixes, *commonPrefix.Prefix)
+	}
 
 	return resp, keys, prefixes, err
 }
 
 func ListObjectsWithPrefix(svc *s3.S3, bucket string, prefix string) (*s3.ListObjectsOutput, []string, []string, error) {
 
-	keys := []string {}
-	prefixes := []string {}
+	keys := []string{}
+	prefixes := []string{}
 
 	resp, err := svc.ListObjects(&s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
@@ -198,19 +201,19 @@ func ListObjectsWithPrefix(svc *s3.S3, bucket string, prefix string) (*s3.ListOb
 	}
 
 	for _, commonPrefix := range resp.CommonPrefixes {
-        prefixes = append(prefixes, *commonPrefix.Prefix)
-    }
+		prefixes = append(prefixes, *commonPrefix.Prefix)
+	}
 
 	return resp, keys, prefixes, err
 }
 
 func ListObjectsWithDelimiter(svc *s3.S3, bucket string, delimiter string) (*s3.ListObjectsOutput, []string, []string, error) {
 
-	keys := []string {}
-	prefixes := []string {}
+	keys := []string{}
+	prefixes := []string{}
 
 	resp, err := svc.ListObjects(&s3.ListObjectsInput{
-		Bucket: aws.String(bucket),
+		Bucket:    aws.String(bucket),
 		Delimiter: aws.String(delimiter),
 	})
 
@@ -218,13 +221,12 @@ func ListObjectsWithDelimiter(svc *s3.S3, bucket string, delimiter string) (*s3.
 		keys = append(keys, *key.Key)
 	}
 
-    for _, commonPrefix := range resp.CommonPrefixes {
-        prefixes = append(prefixes, *commonPrefix.Prefix)
-    }
+	for _, commonPrefix := range resp.CommonPrefixes {
+		prefixes = append(prefixes, *commonPrefix.Prefix)
+	}
 
 	return resp, keys, prefixes, err
 }
-
 
 func GetObject(svc *s3.S3, bucket string, key string) (string, error) {
 
@@ -254,8 +256,8 @@ func GetObject(svc *s3.S3, bucket string, key string) (string, error) {
 
 func GetObjectWithRange(svc *s3.S3, bucket string, key string, range_value string) (*s3.GetObjectOutput, string, error) {
 
-	results, err := svc.GetObject(&s3.GetObjectInput{Bucket: aws.String(bucket), 
-					Key: aws.String(key), Range: aws.String(range_value) })
+	results, err := svc.GetObject(&s3.GetObjectInput{Bucket: aws.String(bucket),
+		Key: aws.String(key), Range: aws.String(range_value)})
 
 	var data string
 	var errr error
@@ -341,8 +343,8 @@ func GetKeysWithMarker(svc *s3.S3, bucket string, marker string) (*s3.ListObject
 	var keys []string
 
 	resp, err := svc.ListObjects(&s3.ListObjectsInput{
-		Bucket:  aws.String(bucket),
-		Marker:  aws.String(marker),
+		Bucket: aws.String(bucket),
+		Marker: aws.String(marker),
 	})
 
 	for _, key := range resp.Contents {
@@ -391,39 +393,38 @@ func GeneratePresignedUrlGetObject(svc *s3.S3, bucket string, key string) (strin
 	return urlStr, err
 }
 
-func DeletePrefixedBuckets(svc *s3.S3){
+func DeletePrefixedBuckets(svc *s3.S3) {
 
-  buckets, err := svc.ListBuckets(&s3.ListBucketsInput{})
+	buckets, err := svc.ListBuckets(&s3.ListBucketsInput{})
 
-  if err != nil {
-    panic(fmt.Sprintf("failed to list buckets, %v", err))
-  }
+	if err != nil {
+		panic(fmt.Sprintf("failed to list buckets, %v", err))
+	}
 
-  for _, b := range buckets.Buckets {
-    bucket := aws.StringValue(b.Name)
+	for _, b := range buckets.Buckets {
+		bucket := aws.StringValue(b.Name)
 
-    if !strings.HasPrefix(bucket, prefix) {
-      continue
-    }
-    
-    if err := DeleteObjects(svc, bucket); err != nil {
-      fmt.Fprintf(os.Stderr, "failed to delete objects %q, %v", bucket, err)
-    }
+		if !strings.HasPrefix(bucket, prefix) {
+			continue
+		}
 
-    if err := DeleteBucket(svc, bucket); err != nil {
-      fmt.Fprintf(os.Stderr, "failed to delete bucket %q, %v", bucket, err)
-    }
-  }
+		if err := DeleteObjects(svc, bucket); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to delete objects %q, %v", bucket, err)
+		}
 
+		if err := DeleteBucket(svc, bucket); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to delete bucket %q, %v", bucket, err)
+		}
+	}
 
 }
 
-func EncryptionSSECustomerWrite (svc *s3.S3, filesize int) (string, string, error) {
+func EncryptionSSECustomerWrite(svc *s3.S3, filesize int) (string, string, error) {
 
-	data :=  strings.Repeat("A", filesize)
+	data := strings.Repeat("A", filesize)
 	key := "testobj"
 	bucket := GetBucketName()
-	sse := []string{"AES256", "pO3upElrwuEXSoFwCfnZPdSsmt/xWeFa0N9KgDijwVs=","DWygnHRtgiJ77HCm+1rvHw=="}
+	sse := []string{"AES256", "pO3upElrwuEXSoFwCfnZPdSsmt/xWeFa0N9KgDijwVs=", "DWygnHRtgiJ77HCm+1rvHw=="}
 
 	err := CreateBucket(svc, bucket)
 
@@ -436,7 +437,7 @@ func EncryptionSSECustomerWrite (svc *s3.S3, filesize int) (string, string, erro
 
 func SSEKMSkeyIdCustomerWrite(svc *s3.S3, filesize int) (string, string, error) {
 
-	data :=  strings.Repeat("A", filesize)
+	data := strings.Repeat("A", filesize)
 	key := "testobj"
 	bucket := GetBucketName()
 	sse := viper.GetString("s3main.SSE")
@@ -453,7 +454,7 @@ func SSEKMSkeyIdCustomerWrite(svc *s3.S3, filesize int) (string, string, error) 
 
 func SSEKMSCustomerWrite(svc *s3.S3, filesize int) (string, string, error) {
 
-	data :=  strings.Repeat("A", filesize)
+	data := strings.Repeat("A", filesize)
 	key := "testobj"
 	bucket := GetBucketName()
 	sse := "aws:kms"
@@ -468,16 +469,15 @@ func SSEKMSCustomerWrite(svc *s3.S3, filesize int) (string, string, error) {
 	return rdata, data, err
 }
 
-
 func WriteSSECEcrypted(svc *s3.S3, bucket string, key string, content string, sse []string) error {
 
 	_, err := svc.PutObject(&s3.PutObjectInput{
-		Body:   strings.NewReader(content),
-		Bucket: &bucket,
-		Key:    &key,
+		Body:                 strings.NewReader(content),
+		Bucket:               &bucket,
+		Key:                  &key,
 		SSECustomerAlgorithm: &sse[0],
-		SSECustomerKey: &sse[1],
-		SSECustomerKeyMD5: &sse[2],
+		SSECustomerKey:       &sse[1],
+		SSECustomerKeyMD5:    &sse[2],
 	})
 
 	return err
@@ -486,11 +486,11 @@ func WriteSSECEcrypted(svc *s3.S3, bucket string, key string, content string, ss
 func ReadSSECEcrypted(svc *s3.S3, bucket string, key string, sse []string) (string, error) {
 
 	results, err := svc.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(bucket), 
-		Key: aws.String(key), 
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(key),
 		SSECustomerAlgorithm: &sse[0],
-		SSECustomerKey: &sse[1],
-		SSECustomerKeyMD5: &sse[2],
+		SSECustomerKey:       &sse[1],
+		SSECustomerKeyMD5:    &sse[2],
 	})
 
 	var resp string
@@ -518,9 +518,9 @@ func ReadSSECEcrypted(svc *s3.S3, bucket string, key string, sse []string) (stri
 func WriteSSEKMS(svc *s3.S3, bucket string, key string, content string, sse string) error {
 
 	_, err := svc.PutObject(&s3.PutObjectInput{
-		Body:   strings.NewReader(content),
-		Bucket: &bucket,
-		Key:    &key,
+		Body:                 strings.NewReader(content),
+		Bucket:               &bucket,
+		Key:                  &key,
 		ServerSideEncryption: &sse,
 	})
 
@@ -530,20 +530,20 @@ func WriteSSEKMS(svc *s3.S3, bucket string, key string, content string, sse stri
 func WriteSSEKMSkeyId(svc *s3.S3, bucket string, key string, content string, sse string, kmskeyid string) error {
 
 	_, err := svc.PutObject(&s3.PutObjectInput{
-		Body:   strings.NewReader(content),
-		Bucket: &bucket,
-		Key:    &key,
+		Body:                 strings.NewReader(content),
+		Bucket:               &bucket,
+		Key:                  &key,
 		ServerSideEncryption: &sse,
-		SSEKMSKeyId: &kmskeyid,
+		SSEKMSKeyId:          &kmskeyid,
 	})
 
 	return err
 }
 
-func GetSetMetadata (metadata map[string]*string) map[string]*string {
+func GetSetMetadata(metadata map[string]*string) map[string]*string {
 
 	bucket := GetBucketName()
-	objects := map[string]string{ "key1": "echo",}
+	objects := map[string]string{"key1": "echo"}
 	key := objects["key1"]
 
 	_ = CreateBucket(svc, bucket)
@@ -558,7 +558,7 @@ func GetSetMetadata (metadata map[string]*string) map[string]*string {
 func GetObjectWithIfMatch(svc *s3.S3, bucket string, key string, condition string) (string, error) {
 
 	results, err := svc.GetObject(&s3.GetObjectInput{Bucket: aws.String(bucket), Key: aws.String(key), IfMatch: aws.String(condition)})
-	
+
 	var resp string
 	var errr error
 
@@ -656,7 +656,6 @@ func GetObjectWithIfUnModifiedSince(svc *s3.S3, bucket string, key string, time 
 	return resp, errr
 }
 
-
 func GetObj(svc *s3.S3, bucket string, key string) (*s3.GetObjectOutput, error) {
 
 	results, err := svc.GetObject(&s3.GetObjectInput{Bucket: aws.String(bucket), Key: aws.String(key)})
@@ -664,7 +663,7 @@ func GetObj(svc *s3.S3, bucket string, key string) (*s3.GetObjectOutput, error) 
 	return results, err
 }
 
-func PutObjectWithIfMatch (svc *s3.S3, bucket string, key string, content string, tag string) error {
+func PutObjectWithIfMatch(svc *s3.S3, bucket string, key string, content string, tag string) error {
 
 	data, err := GetObject(svc, bucket, key)
 
@@ -673,15 +672,15 @@ func PutObjectWithIfMatch (svc *s3.S3, bucket string, key string, content string
 		fmt.Sprintf("some data, %v", data)
 	}
 
-	if err == nil{
+	if err == nil {
 
 		ctx := context.Background()
 		ctx, _ = context.WithTimeout(ctx, time.Minute)
 
 		_, err = svc.PutObjectWithContext(ctx, &s3.PutObjectInput{
-		    Bucket: aws.String(bucket),
-		    Key:    aws.String(key),
-		    Body:   strings.NewReader(content),
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+			Body:   strings.NewReader(content),
 		}, WithIfNoneMatch(tag))
 
 	}
@@ -689,15 +688,15 @@ func PutObjectWithIfMatch (svc *s3.S3, bucket string, key string, content string
 	return err
 }
 
-func PutObjectWithIfNoneMatch (svc *s3.S3, bucket string, key string, content string, tag string) error {
+func PutObjectWithIfNoneMatch(svc *s3.S3, bucket string, key string, content string, tag string) error {
 
 	ctx := context.Background()
 	ctx, _ = context.WithTimeout(ctx, time.Minute)
 
 	_, err = svc.PutObjectWithContext(ctx, &s3.PutObjectInput{
-	    Bucket: aws.String(bucket),
-	    Key:    aws.String(key),
-	    Body:   strings.NewReader(content),
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   strings.NewReader(content),
 	}, WithIfNoneMatch(tag))
 
 	return err
@@ -706,9 +705,9 @@ func PutObjectWithIfNoneMatch (svc *s3.S3, bucket string, key string, content st
 func AbortMultiPartUpload(svc *s3.S3, bucket string, key string, uploadid string) (*s3.AbortMultipartUploadOutput, error) {
 
 	params := &s3.AbortMultipartUploadInput{
-		Bucket: aws.String(bucket),
-	    Key:    aws.String(key),
-	    UploadId: aws.String(uploadid),
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(key),
+		UploadId: aws.String(uploadid),
 	}
 
 	result, err := svc.AbortMultipartUpload(params)
@@ -720,7 +719,7 @@ func AbortMultiPartUploadInvalid(svc *s3.S3, bucket string, key string, uploadid
 
 	params := &s3.AbortMultipartUploadInput{
 		Bucket: aws.String(bucket),
-	    Key:    aws.String(key),
+		Key:    aws.String(key),
 	}
 
 	result, err := svc.AbortMultipartUpload(params)
@@ -728,11 +727,11 @@ func AbortMultiPartUploadInvalid(svc *s3.S3, bucket string, key string, uploadid
 	return result, err
 }
 
-func InitiateMultipartUpload(svc *s3.S3, bucket string, key string) (*s3.CreateMultipartUploadOutput, error){
+func InitiateMultipartUpload(svc *s3.S3, bucket string, key string) (*s3.CreateMultipartUploadOutput, error) {
 
 	input := &s3.CreateMultipartUploadInput{
-    	Bucket: aws.String(bucket),
-    	Key:    aws.String(key),
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
 	}
 
 	result, err := svc.CreateMultipartUpload(input)
@@ -741,14 +740,14 @@ func InitiateMultipartUpload(svc *s3.S3, bucket string, key string) (*s3.CreateM
 
 }
 
-func UploadCopyPart (svc *s3.S3, bucket string, key string, source string, uploadid string, partnumber int64 ) (*s3.UploadPartCopyOutput, error){
+func UploadCopyPart(svc *s3.S3, bucket string, key string, source string, uploadid string, partnumber int64) (*s3.UploadPartCopyOutput, error) {
 
 	input := &s3.UploadPartCopyInput{
-	    Bucket:     aws.String(bucket),
-	    CopySource: aws.String(source),
-	    Key:        aws.String(key),
-	    PartNumber: aws.Int64(partnumber),
-	    UploadId:   aws.String(uploadid),
+		Bucket:     aws.String(bucket),
+		CopySource: aws.String(source),
+		Key:        aws.String(key),
+		PartNumber: aws.Int64(partnumber),
+		UploadId:   aws.String(uploadid),
 	}
 
 	result, err := svc.UploadPartCopy(input)
@@ -756,19 +755,19 @@ func UploadCopyPart (svc *s3.S3, bucket string, key string, source string, uploa
 	return result, err
 }
 
-func CompleteMultiUpload(svc *s3.S3, bucket string, key string, partNum int64, uploadid string, etag string )(*s3.CompleteMultipartUploadOutput, error){
+func CompleteMultiUpload(svc *s3.S3, bucket string, key string, partNum int64, uploadid string, etag string) (*s3.CompleteMultipartUploadOutput, error) {
 
 	input := &s3.CompleteMultipartUploadInput{
-	    Bucket: aws.String(bucket),
-	    Key:    aws.String(key),
-	    MultipartUpload: &s3.CompletedMultipartUpload{
-	        Parts: []*s3.CompletedPart{
-		            {
-		                ETag:       aws.String(etag),
-		                PartNumber: aws.Int64(partNum),
-		            },
-		        },
-		    },
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: []*s3.CompletedPart{
+				{
+					ETag:       aws.String(etag),
+					PartNumber: aws.Int64(partNum),
+				},
+			},
+		},
 		UploadId: aws.String(uploadid),
 	}
 
@@ -777,12 +776,12 @@ func CompleteMultiUpload(svc *s3.S3, bucket string, key string, partNum int64, u
 	return result, err
 }
 
-func Listparts (svc *s3.S3, bucket string, key string, uploadid string)(*s3.ListPartsOutput, error){
+func Listparts(svc *s3.S3, bucket string, key string, uploadid string) (*s3.ListPartsOutput, error) {
 
 	input := &s3.ListPartsInput{
-	    Bucket:   aws.String(bucket),
-	    Key:      aws.String(key),
-	    UploadId: aws.String(uploadid),
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(key),
+		UploadId: aws.String(uploadid),
 	}
 
 	result, err := svc.ListParts(input)
@@ -790,14 +789,14 @@ func Listparts (svc *s3.S3, bucket string, key string, uploadid string)(*s3.List
 	return result, err
 }
 
-func Uploadpart (svc *s3.S3, bucket string, key string, uploadid string, content string, partNum int64)(*s3.UploadPartOutput, error){
+func Uploadpart(svc *s3.S3, bucket string, key string, uploadid string, content string, partNum int64) (*s3.UploadPartOutput, error) {
 
 	input := &s3.UploadPartInput{
-	    Body:       aws.ReadSeekCloser(strings.NewReader(content)),
-	    Bucket:     aws.String(bucket),
-	    Key:        aws.String(key),
-	    PartNumber: aws.Int64(partNum),
-	    UploadId:   aws.String(uploadid),
+		Body:       aws.ReadSeekCloser(strings.NewReader(content)),
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(key),
+		PartNumber: aws.Int64(partNum),
+		UploadId:   aws.String(uploadid),
 	}
 
 	result, err := svc.UploadPart(input)
@@ -805,7 +804,7 @@ func Uploadpart (svc *s3.S3, bucket string, key string, uploadid string, content
 	return result, err
 }
 
-func SetupObjectWithHeader(svc *s3.S3, bucket string, key string, content string, headers map[string]string) (error) {
+func SetupObjectWithHeader(svc *s3.S3, bucket string, key string, content string, headers map[string]string) error {
 
 	ctx := context.Background()
 	ctx, _ = context.WithTimeout(ctx, time.Minute)
@@ -819,13 +818,16 @@ func SetupObjectWithHeader(svc *s3.S3, bucket string, key string, content string
 	return err
 }
 
-func SetupBucketWithHeader(svc *s3.S3, bucket string, headers map[string]string) (error) {
+func SetupBucketWithHeader(svc *s3.S3, bucket string, headers map[string]string) error {
 
 	ctx := context.Background()
 	ctx, _ = context.WithTimeout(ctx, time.Minute)
 
 	_, err = svc.CreateBucketWithContext(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: svc.Config.Region,
+		},
 	}, AddHeaders(headers))
 
 	return err
@@ -838,28 +840,31 @@ func CreateBucketWithHeader(svc *s3.S3, bucket string, headers map[string]string
 
 	_, err := svc.CreateBucketWithContext(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: svc.Config.Region,
+		},
 	}, AddHeaders(headers))
 
 	return err
 }
 
-func SetLifecycle(svc *s3.S3, bucket , id , status, md5 string) (*s3.PutBucketLifecycleConfigurationOutput, error) {
+func SetLifecycle(svc *s3.S3, bucket, id, status, md5 string) (*s3.PutBucketLifecycleConfigurationOutput, error) {
 
 	input := &s3.PutBucketLifecycleConfigurationInput{
-	    Bucket: aws.String(bucket),
-	    LifecycleConfiguration: &s3.BucketLifecycleConfiguration{
-	        Rules: []*s3.LifecycleRule{
-	            {
-	                ID:     aws.String(id),
-	                Status: aws.String(status),
-	            },
-	        },
-	    },
+		Bucket: aws.String(bucket),
+		LifecycleConfiguration: &s3.BucketLifecycleConfiguration{
+			Rules: []*s3.LifecycleRule{
+				{
+					ID:     aws.String(id),
+					Status: aws.String(status),
+				},
+			},
+		},
 	}
 	req, resp := svc.PutBucketLifecycleConfigurationRequest(input)
 
 	req.HTTPRequest.Header.Set("Content-Md5", string(md5))
-	
+
 	err := req.Send()
 
 	return resp, err
@@ -871,7 +876,7 @@ func GetLifecycle(svc *s3.S3, bucket string) (*s3.GetBucketLifecycleConfiguratio
 	ctx, _ = context.WithTimeout(ctx, time.Minute)
 
 	input := &s3.GetBucketLifecycleConfigurationInput{
-	    Bucket: aws.String(bucket),
+		Bucket: aws.String(bucket),
 	}
 
 	result, err := svc.GetBucketLifecycleConfigurationWithContext(ctx, input)
@@ -879,11 +884,11 @@ func GetLifecycle(svc *s3.S3, bucket string) (*s3.GetBucketLifecycleConfiguratio
 	return result, err
 }
 
-func SetACL (svc *s3.S3, bucket string, acl string)(*s3.PutBucketAclOutput, error){
+func SetACL(svc *s3.S3, bucket string, acl string) (*s3.PutBucketAclOutput, error) {
 
 	req, resp := svc.PutBucketAclRequest(&s3.PutBucketAclInput{
 		Bucket: aws.String(bucket),
-		ACL: 	aws.String(acl),
+		ACL:    aws.String(acl),
 	})
 
 	err := req.Send()

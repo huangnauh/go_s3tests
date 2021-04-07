@@ -1,9 +1,9 @@
 package helpers
 
-import ( 
+import (
+	"testing"
 
-  "testing"
-  "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestString(t *testing.T) {

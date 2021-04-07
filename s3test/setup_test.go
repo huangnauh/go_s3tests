@@ -1,13 +1,13 @@
 package s3test
 
 import (
-	"github.com/stretchr/testify/suite"
 	"testing"
 
-	. "../Utilities"
+	"github.com/ceph/go_s3tests/helpers"
+	"github.com/stretchr/testify/suite"
 )
 
-var svc = GetConn()
+var svc = helpers.GetConn()
 
 type S3Suite struct {
 	suite.Suite
@@ -29,10 +29,10 @@ func TestSuite(t *testing.T) {
 
 func (suite *S3Suite) TearDownTest() {
 
-	DeletePrefixedBuckets(svc)
+	helpers.DeletePrefixedBuckets(svc)
 }
 
 func (suite *HeadSuite) TearDownTest() {
 
-	DeletePrefixedBuckets(svc)
+	helpers.DeletePrefixedBuckets(svc)
 }
