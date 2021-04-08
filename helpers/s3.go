@@ -39,7 +39,7 @@ func LoadConfig() error {
 var err = LoadConfig()
 
 const (
-	localCertFile = "/home/mu3e/Software/ceph-master/build/cert.pem"
+	localCertFile = "/home/mu3e/Software/huangnauh-master/build/cert.pem"
 )
 
 var Creds = credentials.NewStaticCredentials(viper.GetString("s3main.access_key"), viper.GetString("s3main.access_secret"), "")

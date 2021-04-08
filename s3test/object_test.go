@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/ceph/go_s3tests/helpers"
+	"github.com/huangnauh/go_s3tests/helpers"
 )
 
 func (suite *S3Suite) TestObjectWriteToNonExistantBucket() {
@@ -1014,7 +1014,7 @@ func (suite *S3Suite) TestGetObjectIfModifiedSinceGood() {
 	bucket := helpers.GetBucketName()
 	objects := map[string]string{"foo": "bar"}
 	now := time.Now()
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	err := helpers.CreateBucket(svc, bucket)
 	err = helpers.CreateObjects(svc, bucket, objects)
@@ -1037,7 +1037,7 @@ func (suite *S3Suite) TestGetObjectIfUnModifiedSinceGood() {
 	bucket := helpers.GetBucketName()
 	objects := map[string]string{"foo": "bar"}
 	now := time.Now()
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	err := helpers.CreateBucket(svc, bucket)
 	err = helpers.CreateObjects(svc, bucket, objects)
@@ -1316,7 +1316,7 @@ func (suite *S3Suite) TestMultipartUploadOverwriteExistingObject() {
 
 	assert := suite
 	bucket := helpers.GetBucketName()
-	num_parts := 2
+	num_parts := 1
 
 	payload := strings.Repeat("12345", 1024*1024)
 	key_name := "mymultipart"

@@ -1,4 +1,4 @@
-module github.com/ceph/go_s3tests
+module github.com/huangnauh/go_s3tests
 
 go 1.16
 

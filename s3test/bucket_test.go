@@ -3,7 +3,7 @@ package s3test
 import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/ceph/go_s3tests/helpers"
+	"github.com/huangnauh/go_s3tests/helpers"
 )
 
 func (suite *S3Suite) TestBucketCreateReadDelete() {

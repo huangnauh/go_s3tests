@@ -3,7 +3,7 @@ package s3test
 import (
 	"testing"
 
-	"github.com/ceph/go_s3tests/helpers"
+	"github.com/huangnauh/go_s3tests/helpers"
 	"github.com/stretchr/testify/suite"
 )
 

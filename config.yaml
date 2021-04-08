@@ -7,7 +7,7 @@ fixtures :
     bucket_prefix : test
 
 s3main :
-    access_key : "9d6696bb73ace6af9dfd10e1d50250ee"
+    access_key : "9d6696bb73ace6af9dfd"
     access_secret : "1c63129ae9db9c60c3e8aa94d3e00495"
     bucket : bucket1
     region : us-east-1

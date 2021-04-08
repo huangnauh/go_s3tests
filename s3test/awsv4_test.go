@@ -9,7 +9,7 @@ import (
 	"time"
 
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
-	"github.com/ceph/go_s3tests/helpers"
+	"github.com/huangnauh/go_s3tests/helpers"
 	"github.com/spf13/viper"
 )
 
