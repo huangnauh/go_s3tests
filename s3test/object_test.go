@@ -2045,8 +2045,8 @@ func (suite *HeadSuite) TestObjectListPrefixDelimiterBasic() {
 	bucket := helpers.GetBucketName()
 	prefix := "foo/"
 	delimeter := "/"
-	objects := map[string]string{"foo/bar": "echo", "foo/baz/xyzzy": "lima", "quux/thud": "golf"}
-	expected_keys := []string{"foo/bar"}
+	objects := map[string]string{"foo/": "", "foo/bar": "echo", "foo/baz/xyzzy": "lima", "quux/thud": "golf"}
+	expected_keys := []string{"foo/bar", "foo/"}
 	expected_prefixes := []string{"foo/baz/"}
 
 	err := helpers.CreateBucket(svc, bucket)
@@ -2212,8 +2212,8 @@ func (suite *HeadSuite) TestObjectListPrefixBasic() {
 	assert := suite
 	bucket := helpers.GetBucketName()
 	prefix := "foo/"
-	objects := map[string]string{"foo/bar": "echo", "foo/baz": "lima", "quux": "golf"}
-	expected_keys := []string{"foo/bar", "foo/baz"}
+	objects := map[string]string{"foo/": "", "foo/bar": "echo", "foo/baz": "lima", "quux": "golf"}
+	expected_keys := []string{"foo/bar", "foo/baz", "foo/"}
 	expected_prefixes := []string{}
 
 	err := helpers.CreateBucket(svc, bucket)
